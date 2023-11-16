@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}/${fileBasenameNoExtension}",
-            "args": ["in_2D_0.txt","test.txt","2"], // N, prinLevel, P
+            "args": ["in_2D_0.txt","test.txt","1"], // N, prinLevel, P
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
@@ -28,7 +28,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}/${fileBasenameNoExtension}",
-            "args": ["in_2D_0.txt","test.txt","2"],
+            "args": ["in_2D_0.txt","test.txt","1"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

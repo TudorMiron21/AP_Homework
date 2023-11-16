@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <math.h>
+#include <string.h>
 
 #define OFF 0
 #define ON 1
@@ -138,97 +139,6 @@ void readContentFromFile(const char *fileName)
 
     fclose(fp);
 }
-int howManyONNeighboursMatrix(int x, int y)
-{
-    int countNeighboursON = 0;
-
-    // Check the eight possible neighbor positions
-    if (x - 1 >= 0 && y - 1 >= 0 && matrix[x - 1][y - 1] == ON)
-        countNeighboursON++;
-
-    if (x - 1 >= 0 && matrix[x - 1][y] == ON)
-        countNeighboursON++;
-
-    if (x - 1 >= 0 && y + 1 < W && matrix[x - 1][y + 1] == ON)
-        countNeighboursON++;
-
-    if (y - 1 >= 0 && matrix[x][y - 1] == ON)
-        countNeighboursON++;
-
-    if (y + 1 < W && matrix[x][y + 1] == ON)
-        countNeighboursON++;
-
-    if (x + 1 < L && y - 1 >= 0 && matrix[x + 1][y - 1] == ON)
-        countNeighboursON++;
-
-    if (x + 1 < L && matrix[x + 1][y] == ON)
-        countNeighboursON++;
-
-    if (x + 1 < L && y + 1 < W && matrix[x + 1][y + 1] == ON)
-        countNeighboursON++;
-
-    return countNeighboursON;
-}
-
-int howManyONNeighboursCube(int x, int y, int z)
-{
-    int countNeighboursON = 0;
-
-    for (int dx = -1; dx <= 1; dx++)
-    {
-        for (int dy = -1; dy <= 1; dy++)
-        {
-            for (int dz = -1; dz <= 1; dz++)
-            {
-                if (dx == 0 && dy == 0 && dz == 0)
-                {
-                    // Skip the current cell itself
-                    continue;
-                }
-
-                int newX = x + dx;
-                int newY = y + dy;
-                int newZ = z + dz;
-
-                // Check boundaries to make sure the neighbor is within the cube
-                if (newX >= 0 && newX < L && newY >= 0 && newY < W && newZ >= 0 && newZ < H)
-                {
-                    if (cube[newX][newY][newZ] == ON)
-                    {
-                        countNeighboursON++;
-                    }
-                }
-            }
-        }
-    }
-
-    return countNeighboursON;
-}
-
-void copyToMatrix()
-{
-    for (int i = 0; i < L; i++)
-    {
-        for (int j = 0; j < W; j++)
-        {
-            matrix[i][j] = copy_marix[i][j];
-        }
-    }
-}
-
-void copyToCube()
-{
-    for (int i = 0; i < L; i++)
-    {
-        for (int j = 0; j < W; j++)
-        {
-            for (int k = 0; k < H; k++)
-            {
-                cube[i][j][k] = copy_cube[i][j][k];
-            }
-        }
-    }
-}
 
 void *threadFunction(void *args)
 {
@@ -253,9 +163,45 @@ void *threadFunction(void *args)
             {
                 for (int j = 0; j < W; j++)
                 {
-                    if ((howManyONNeighboursMatrix(i, j) == 2) && (matrix[i][j] == OFF))
+                    if (matrix[i][j] == OFF)
                     {
-                        copy_marix[i][j] = ON;
+                        int countNeighboursON = 0;
+
+                        // Check the eight possible neighbor positions
+                        if (i - 1 >= 0 && j - 1 >= 0)
+                            if (matrix[i - 1][j - 1] == ON)
+                                countNeighboursON++;
+
+                        if (i - 1 >= 0)
+                            if (matrix[i - 1][j] == ON)
+                                countNeighboursON++;
+
+                        if (i - 1 >= 0 && j + 1 < W)
+                            if (matrix[i - 1][j + 1] == ON)
+                                countNeighboursON++;
+
+                        if (j - 1 >= 0)
+                            if (matrix[i][j - 1] == ON)
+                                countNeighboursON++;
+
+                        if (j + 1 < W)
+                            if (matrix[i][j + 1] == ON)
+                                countNeighboursON++;
+
+                        if (i + 1 < L && j - 1 >= 0)
+                            if (matrix[i + 1][j - 1] == ON)
+                                countNeighboursON++;
+
+                        if (i + 1 < L)
+                            if (matrix[i + 1][j] == ON)
+                                countNeighboursON++;
+
+                        if (i + 1 < L && j + 1 < W)
+                            if (matrix[i + 1][j + 1] == ON)
+                                countNeighboursON++;
+
+                        if (countNeighboursON == 2)
+                            copy_marix[i][j] = ON;
                     }
                     if (matrix[i][j] == ON)
                     {
@@ -268,7 +214,13 @@ void *threadFunction(void *args)
                 }
             }
             pthread_barrier_wait(&barrier);
-            copyToMatrix();
+            if (thread_id == 0)
+            {
+                for (int i = 0; i < L; i++)
+                {
+                    memcpy(matrix[i], copy_marix[i], W * sizeof(int));
+                }
+            }
             pthread_barrier_wait(&barrier);
         }
         else
@@ -279,10 +231,72 @@ void *threadFunction(void *args)
                 {
                     for (int k = 0; k < H; k++)
                     {
-                        if ((howManyONNeighboursCube(i, j, k) == 2) && (cube[i][j][k] == OFF))
+                        if (cube[i][j][k] == OFF)
                         {
+                            int countNeighboursON = 0;
 
-                            copy_cube[i][j][k] = ON;
+                            if (i - 1 >= 0 && j - 1 >= 0 && k - 1 >= 0 && cube[i - 1][j - 1][k - 1] == ON)
+                                countNeighboursON++;
+                            if (i - 1 >= 0 && j - 1 >= 0 && cube[i - 1][j - 1][k] == ON)
+                                countNeighboursON++;
+                            if (i - 1 >= 0 && j - 1 >= 0 && k + 1 < H && cube[i - 1][j - 1][k + 1] == ON)
+                                countNeighboursON++;
+
+                            if (i - 1 >= 0 && k - 1 >= 0 && cube[i - 1][j][k - 1] == ON)
+                                countNeighboursON++;
+                            if (i - 1 >= 0 && cube[i - 1][j][k] == ON)
+                                countNeighboursON++;
+                            if (i - 1 >= 0 && k + 1 < H && cube[i - 1][j][k + 1] == ON)
+                                countNeighboursON++;
+
+                            if (i - 1 >= 0 && j + 1 < W && k - 1 >= 0 && cube[i - 1][j + 1][k - 1] == ON)
+                                countNeighboursON++;
+                            if (i - 1 >= 0 && j + 1 < W && cube[i - 1][j + 1][k] == ON)
+                                countNeighboursON++;
+                            if (i - 1 >= 0 && j + 1 < W && k + 1 < H && cube[i - 1][j + 1][k + 1] == ON)
+                                countNeighboursON++;
+
+                            if (j - 1 >= 0 && k - 1 >= 0 && cube[i][j - 1][k - 1] == ON)
+                                countNeighboursON++;
+                            if (j - 1 >= 0 && cube[i][j - 1][k] == ON)
+                                countNeighboursON++;
+                            if (j - 1 >= 0 && k + 1 < H && cube[i][j - 1][k + 1] == ON)
+                                countNeighboursON++;
+
+                            if (j + 1 < W && k - 1 >= 0 && cube[i][j + 1][k - 1] == ON)
+                                countNeighboursON++;
+                            if (j + 1 < W && cube[i][j + 1][k] == ON)
+                                countNeighboursON++;
+                            if (j + 1 < W && k + 1 < H && cube[i][j + 1][k + 1] == ON)
+                                countNeighboursON++;
+
+                            if (k - 1 >= 0 && cube[i][j][k - 1] == ON)
+                                countNeighboursON++;
+                            if (k + 1 < H && cube[i][j][k + 1] == ON)
+                                countNeighboursON++;
+
+                            if (i + 1 < L && j - 1 >= 0 && k - 1 >= 0 && cube[i + 1][j - 1][k - 1] == ON)
+                                countNeighboursON++;
+                            if (i + 1 < L && j - 1 >= 0 && cube[i + 1][j - 1][k] == ON)
+                                countNeighboursON++;
+                            if (i + 1 < L && j - 1 >= 0 && k + 1 < H && cube[i + 1][j - 1][k + 1] == ON)
+                                countNeighboursON++;
+
+                            if (i + 1 < L && k - 1 >= 0 && cube[i + 1][j][k - 1] == ON)
+                                countNeighboursON++;
+                            if (i + 1 < L && cube[i + 1][j][k] == ON)
+                                countNeighboursON++;
+                            if (i + 1 < L && k + 1 < H && cube[i + 1][j][k + 1] == ON)
+                                countNeighboursON++;
+
+                            if (i + 1 < L && j + 1 < W && k - 1 >= 0 && cube[i + 1][j + 1][k - 1] == ON)
+                                countNeighboursON++;
+                            if (i + 1 < L && j + 1 < W && cube[i + 1][j + 1][k] == ON)
+                                countNeighboursON++;
+                            if (i + 1 < L && j + 1 < W && k + 1 < H && cube[i + 1][j + 1][k + 1] == ON)
+                                countNeighboursON++;
+                            if (countNeighboursON == 2)
+                                copy_cube[i][j][k] = ON;
                         }
                         if (cube[i][j][k] == ON)
                         {
@@ -297,7 +311,17 @@ void *threadFunction(void *args)
             }
 
             pthread_barrier_wait(&barrier);
-            copyToCube();
+            if (thread_id == 0)
+            {
+
+                for (int i = 0; i < L; i++)
+                {
+                    for (int j = 0; j < W; j++)
+                    {
+                        memcpy(cube[i][j], copy_cube[i][j], H * sizeof(int));
+                    }
+                }
+            }
             pthread_barrier_wait(&barrier);
         }
     }
@@ -353,8 +377,18 @@ int main(int argc, char **argv)
         pthread_create(&(tid[i]), NULL, threadFunction, &(thread_id[i]));
     }
 
+    for (int i = 0; i < P; i++)
+    {
+        pthread_join(tid[i], NULL);
+    }
+
+    pthread_barrier_destroy(&barrier);
+
     if (D == 2)
+
         writeMatrixToFile(argv[2]);
     else if (D == 3)
+    {
         writeCubeToFile(argv[2]);
+    }
 }
